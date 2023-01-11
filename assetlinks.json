@@ -1,0 +1,14 @@
+[
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "com.nexusclips.nexusclips",
+            "sha256_cert_fingerprints": [
+                "62:3F:0D:B6:69:68:7E:14:E6:B6:12:EA:AE:CA:DF:37:E2:D0:11:49:4D:AE:CB:F1:B1:DB:AB:ED:D6:E9:0F:13"
+            ]
+        }
+    }
+]
