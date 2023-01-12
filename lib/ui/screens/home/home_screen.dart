@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+// import 'package:app_links/app_links.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -18,6 +20,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  // late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
   InAppWebViewController? _webViewController;
   final CookieManager _cookieManager = CookieManager.instance();
 
@@ -30,6 +36,29 @@ class _HomeScreenState extends State<HomeScreen> {
   initState() {
     super.initState();
   }
+
+  // Future<void> initDeepLinks() async {
+  //   _appLinks = AppLinks();
+
+  //   // Check initial link if app was in cold state (terminated)
+  //   final appLink = await _appLinks.getInitialAppLink();
+  //   if (appLink != null) {
+  //     print('getInitialAppLink after login: $appLink');
+  //     openAppLink(appLink);
+  //   }
+
+  //   // Handle link when app is in warm state (front or background)
+  //   _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+  //     print('onAppLink: $uri');
+  //     openAppLink(uri);
+  //   });
+  // }
+
+  // void openAppLink(Uri uri) async {
+  //   await Future.delayed(const Duration(seconds: 2));
+  //   await _downloadFile(
+  //       uri.toString(), DateTime.now().millisecondsSinceEpoch.toString());
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -57,8 +86,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     forceDark: AndroidForceDark.FORCE_DARK_AUTO,
                   ),
                 ),
-                onWebViewCreated: (InAppWebViewController controller) {
+                onWebViewCreated: (InAppWebViewController controller) async {
                   _webViewController = controller;
+
+                  // initDeepLinks();
                 },
                 onReceivedServerTrustAuthRequest:
                     (controller, challenge) async {
@@ -101,25 +132,44 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               if (isDownloading)
                 Center(
-                  child: Container(
-                    width: 150,
-                    height: 150,
-                    decoration: BoxDecoration(
-                        color: Colors.white54,
-                        borderRadius: BorderRadius.circular(100)),
-                    child: Center(
-                      child: CircularPercentIndicator(
-                        radius: 40.0,
-                        lineWidth: 5.0,
-                        percent: _progressValue,
-                        progressColor: Colors.green,
-                        center: SizedBox(
-                          width: 50,
-                          child: Center(
-                            child: Text(
-                              '$_progressPercentValue %',
+                  child: IntrinsicHeight(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      margin: const EdgeInsets.symmetric(horizontal: 30),
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(15)),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            CircularPercentIndicator(
+                              radius: 40.0,
+                              lineWidth: 5.0,
+                              percent: _progressValue,
+                              progressColor: Colors.green,
+                              center: SizedBox(
+                                width: 50,
+                                child: Center(
+                                  child: Text(
+                                    '$_progressPercentValue %',
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(
+                              height: 20,
+                            ),
+                            Text(
+                              'Descargando a tu galería',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headline2!
+                                  .copyWith(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black),
+                            )
+                          ],
                         ),
                       ),
                     ),
