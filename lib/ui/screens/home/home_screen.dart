@@ -5,15 +5,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:percent_indicator/percent_indicator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:share_plus/share_plus.dart';
-
 import '../../widgets/widgets.dart';
+import 'widgets/widgets.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final ChromeSafariBrowser browser = MyChromeSafariBrowser();
+  HomeScreen({super.key});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -80,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     //     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36",
                     clearCache: false,
                     cacheEnabled: true,
-                    //useOnLoadResource: true,
+                    // useOnLoadResource: false,
                   ),
                   android: AndroidInAppWebViewOptions(
                     forceDark: AndroidForceDark.FORCE_DARK_AUTO,
@@ -88,7 +88,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 onWebViewCreated: (InAppWebViewController controller) async {
                   _webViewController = controller;
-
+                  // _webViewController!.loadUrl(
+                  //     urlRequest: URLRequest(
+                  //         url: Uri.parse(
+                  //             'https://nexusclips.com/beta/editor/?&m=edit&moments=d95418d88cef4e8bacaef0bca76a53ce&os=0&co=25&cg=REACTIONS&preset=15071')));
                   // initDeepLinks();
                 },
                 onReceivedServerTrustAuthRequest:
@@ -107,6 +110,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   print("how you are calling");
                   print(loginRequest.args);
                 },
+                onLoadResource: (controller, resource) {
+                  print(resource.url);
+                },
                 onDownloadStartRequest:
                     (controller, DownloadStartRequest url) async {
                   List<Cookie> cookies =
@@ -116,65 +122,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       url.url.toString(),
                       url.suggestedFilename ??
                           DateTime.now().millisecondsSinceEpoch.toString());
-
-                  // final taskId = await FlutterDownloader.enqueue(
-                  //   url: url.url.toString(),
-                  //   savedDir: appPath!.path,
-                  //   // headers: {
-                  //   //   "Cookie":
-                  //   //       "${cookies[0].name}=${cookies[0].value}; ${cookies[1].name}=${cookies[1].value}"
-                  //   // },
-                  //   showNotification: true,
-                  //   openFileFromNotification:
-                  //       true, // click on notification to open downloaded file (for Android)
-                  // );
                 },
               ),
-              if (isDownloading)
-                Center(
-                  child: IntrinsicHeight(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      margin: const EdgeInsets.symmetric(horizontal: 30),
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(15)),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            CircularPercentIndicator(
-                              radius: 40.0,
-                              lineWidth: 5.0,
-                              percent: _progressValue,
-                              progressColor: Colors.green,
-                              center: SizedBox(
-                                width: 50,
-                                child: Center(
-                                  child: Text(
-                                    '$_progressPercentValue %',
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(
-                              height: 20,
-                            ),
-                            Text(
-                              'Descargando a tu galería',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headline2!
-                                  .copyWith(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black),
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                )
+              isDownloading
+                  ? DownloadViewWidget(
+                      progressValue: _progressPercentValue,
+                      percentValue: _progressValue,
+                    )
+                  : Container()
             ],
           ),
         ),
@@ -184,12 +139,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   _downloadFile(String path, String fileName) async {
     try {
-      await (Platform.isAndroid ? Permission.storage : Permission.photosAddOnly)
-          .request()
-          .isGranted;
-      var appPath = await getTemporaryDirectory();
+      await [Permission.storage, Permission.manageExternalStorage].request();
+      var appPath = Platform.isAndroid
+          ? (await getExternalStorageDirectory() ??
+              await getApplicationSupportDirectory())
+          : await getApplicationDocumentsDirectory();
 
-      String directoryPath = appPath.path + "/nexusclips";
+      String directoryPath = "${appPath.path}/nexusclips";
 
       await Directory(directoryPath).create(recursive: true);
       String filePath = '$directoryPath/${DateTime.now()}.mp4';
@@ -201,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onReceiveProgress: (sentBytes, totalBytes) {
         _progress(sentBytes, totalBytes);
       });
-      await SaverGallery.saveFile(filePath);
+
       if (!mounted) return;
       setState(() {
         isDownloading = false;
@@ -209,6 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _progressPercentValue = 0;
       });
       _onShare(filePath);
+      await SaverGallery.saveFile(filePath);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -259,5 +216,17 @@ class Util {
             (originalMaxValue - originalMinValue) *
             (translatedMaxValue - translatedMinValue) +
         translatedMinValue;
+  }
+}
+
+class MyChromeSafariBrowser extends ChromeSafariBrowser {
+  @override
+  void onOpened() {
+    print("ChromeSafari browser opened");
+  }
+
+  @override
+  void onClosed() {
+    print("ChromeSafari browser closed");
   }
 }
